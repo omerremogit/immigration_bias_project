@@ -7,8 +7,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder  # For encoding categorical features
 from aif360.metrics import BinaryLabelDatasetMetric
 from lime.lime_tabular import LimeTabularExplainer
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Enable CORS for all domains (you can restrict it to your frontend domain for security)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for testing. You can restrict it to specific domains later
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods like POST
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Manually load the COMPAS dataset from the CSV file
 compas_df = pd.read_csv("compas-scores-two-years.csv")
