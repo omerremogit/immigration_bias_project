@@ -77,11 +77,20 @@ def predict_visa(data: VisaInput):
 
 @app.post("/explain")
 def explain_decision(data: VisaInput):
-    # Get input data for explanation
     input_array = np.array([data.age, data.priors_count, data.race])
+    # Get explanation
     explanation = explainer.explain_instance(input_array, model.predict_proba)
-    exp_list = explanation.as_list()  # Get explanation as list
-    return {"explanation": exp_list}
+    exp_list = explanation.as_list()
+    
+    # Get the prediction (Visa Decision)
+    prediction = model.predict(input_array)[0]
+    visa_decision = "Accepted" if prediction == 0 else "Rejected"
+    
+    # Return both the visa decision and explanation
+    return {
+        "visa_decision": visa_decision,
+        "explanation": exp_list
+    }
 
 @app.get("/audit")
 def audit_bias():
