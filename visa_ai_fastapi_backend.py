@@ -78,11 +78,11 @@ def predict_visa(data: VisaInput):
 @app.post("/explain")
 async def explain_decision(data: VisaInput):
     try:
-        # Extract data from input
-        input_array = np.array([data.age, data.priors_count, data.race])
+        # Reshape the input to be 2D, as required by LimeTabularExplainer
+        input_array = np.array([data.age, data.priors_count, data.race]).reshape(1, -1)
         
         # Get explanation using LIME
-        explanation = explainer.explain_instance(input_array, model.predict_proba)
+        explanation = explainer.explain_instance(input_array[0], model.predict_proba)
         exp_list = explanation.as_list()
         
         # Get the prediction (Visa Decision)
