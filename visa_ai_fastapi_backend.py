@@ -3,11 +3,11 @@ from pydantic import BaseModel
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder  # For encoding categorical features
 from aif360.metrics import BinaryLabelDatasetMetric
 from lime.lime_tabular import LimeTabularExplainer
 from fastapi.middleware.cors import CORSMiddleware
+from aif360.datasets import BinaryLabelDataset
 
 app = FastAPI()
 
@@ -31,8 +31,6 @@ compas_df = compas_df[['age', 'priors_count', 'race', 'two_year_recid']]  # Adju
 label_encoder = LabelEncoder()
 compas_df['race'] = label_encoder.fit_transform(compas_df['race'])  # Encoding 'race' to numeric values
 
-# Handle any other non-numeric columns similarly, if applicable.
-
 # Define features and labels
 X = compas_df[['age', 'priors_count', 'race']].values
 y = compas_df['two_year_recid'].values  # Adjust the target column name accordingly
@@ -50,8 +48,6 @@ explainer = LimeTabularExplainer(
 )
 
 # Bias metrics setup using AIF360
-from aif360.datasets import BinaryLabelDataset
-
 # Recreate AIF360 dataset from the DataFrame
 reconstructed_dataset = BinaryLabelDataset(
     favorable_label=0,
@@ -65,6 +61,7 @@ privileged_groups = [{'race': 1}]
 unprivileged_groups = [{'race': 0}]
 metric = BinaryLabelDatasetMetric(reconstructed_dataset, unprivileged_groups, privileged_groups)
 
+# Pydantic model for input data
 class VisaInput(BaseModel):
     age: float
     priors_count: float
@@ -72,6 +69,7 @@ class VisaInput(BaseModel):
 
 @app.post("/predict")
 def predict_visa(data: VisaInput):
+    # Format the input data into the expected structure
     input_array = np.array([[data.age, data.priors_count, data.race]])
     prediction = model.predict(input_array)[0]
     decision = "Accepted" if prediction == 0 else "Rejected"
@@ -79,13 +77,15 @@ def predict_visa(data: VisaInput):
 
 @app.post("/explain")
 def explain_decision(data: VisaInput):
+    # Get input data for explanation
     input_array = np.array([data.age, data.priors_count, data.race])
     explanation = explainer.explain_instance(input_array, model.predict_proba)
-    exp_list = explanation.as_list()
+    exp_list = explanation.as_list()  # Get explanation as list
     return {"explanation": exp_list}
 
 @app.get("/audit")
 def audit_bias():
+    # Calculate bias metrics
     di = metric.disparate_impact()
     md = metric.mean_difference()
     return {
