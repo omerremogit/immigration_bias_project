@@ -1,0 +1,17 @@
+# Python Bytecode
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env
+
+# Dataset and other large files (if you want to ignore datasets)
+data/
+
+# Jupyter Notebooks
+*.ipynb_checkpoints
+
+# IDEs and editors
+.vscode/
+.idea/
