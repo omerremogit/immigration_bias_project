@@ -1,33 +1,31 @@
-# visa_ai_fastapi_backend.py
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-
-from aif360.datasets import CompasDataset
+from sklearn.preprocessing import LabelEncoder  # For encoding categorical features
 from aif360.metrics import BinaryLabelDatasetMetric
 from lime.lime_tabular import LimeTabularExplainer
 
 app = FastAPI()
 
-# Load and filter COMPAS dataset from local path
-compas = CompasDataset(name='compas-scores-two-years')
+# Manually load the COMPAS dataset from the CSV file
+compas_df = pd.read_csv("compas-scores-two-years.csv")
 
-# Align lengths manually (in case of mismatches)
-features_df = pd.DataFrame(compas.features, columns=compas.feature_names)
-labels = compas.labels.ravel()[:len(features_df)]
-protected = compas.protected_attributes.ravel()[:len(features_df)]
+# Preprocess the data
+# Select the columns you need (adjust based on your dataset's column names)
+compas_df = compas_df[['age', 'priors_count', 'race', 'two_year_recid']]  # Adjust column names accordingly
 
-features_df['label'] = labels
-features_df['race'] = protected
+# Handle non-numeric 'race' column by encoding it
+label_encoder = LabelEncoder()
+compas_df['race'] = label_encoder.fit_transform(compas_df['race'])  # Encoding 'race' to numeric values
 
-# Keep only selected features for the prototype
-filtered_df = features_df[['age', 'priors_count', 'race', 'label']]
-X = filtered_df[['age', 'priors_count', 'race']].values
-y = filtered_df['label'].values
+# Handle any other non-numeric columns similarly, if applicable.
+
+# Define features and labels
+X = compas_df[['age', 'priors_count', 'race']].values
+y = compas_df['two_year_recid'].values  # Adjust the target column name accordingly
 
 # Train a simple logistic regression model
 model = LogisticRegression(max_iter=1000)
@@ -41,14 +39,15 @@ explainer = LimeTabularExplainer(
     mode='classification'
 )
 
-# Bias metrics setup using AIF360 (recreate AIF360 dataset from filtered data)
+# Bias metrics setup using AIF360
 from aif360.datasets import BinaryLabelDataset
 
+# Recreate AIF360 dataset from the DataFrame
 reconstructed_dataset = BinaryLabelDataset(
     favorable_label=0,
     unfavorable_label=1,
-    df=pd.DataFrame(np.hstack((X, y.reshape(-1, 1))), columns=['age', 'priors_count', 'race', 'label']),
-    label_names=['label'],
+    df=compas_df,
+    label_names=['two_year_recid'],  # Adjust column names accordingly
     protected_attribute_names=['race']
 )
 
