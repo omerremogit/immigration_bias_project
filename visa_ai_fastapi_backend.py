@@ -14,10 +14,7 @@ from lime.lime_tabular import LimeTabularExplainer
 app = FastAPI()
 
 # Load and filter COMPAS dataset from local path
-compas = CompasDataset(
-    data_dir="data/",
-    filename="compas-scores-two-years.csv"
-)
+compas = CompasDataset(name='compas-scores-two-years')
 
 # Align lengths manually (in case of mismatches)
 features_df = pd.DataFrame(compas.features, columns=compas.feature_names)
