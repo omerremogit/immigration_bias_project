@@ -76,21 +76,29 @@ def predict_visa(data: VisaInput):
     return {"visa_decision": decision}
 
 @app.post("/explain")
-def explain_decision(data: VisaInput):
-    input_array = np.array([data.age, data.priors_count, data.race])
-    # Get explanation
-    explanation = explainer.explain_instance(input_array, model.predict_proba)
-    exp_list = explanation.as_list()
-    
-    # Get the prediction (Visa Decision)
-    prediction = model.predict(input_array)[0]
-    visa_decision = "Accepted" if prediction == 0 else "Rejected"
-    
-    # Return both the visa decision and explanation
-    return {
-        "visa_decision": visa_decision,
-        "explanation": exp_list
-    }
+async def explain_decision(data: VisaInput):
+    try:
+        # Extract data from input
+        input_array = np.array([data.age, data.priors_count, data.race])
+        
+        # Get explanation using LIME
+        explanation = explainer.explain_instance(input_array, model.predict_proba)
+        exp_list = explanation.as_list()
+        
+        # Get the prediction (Visa Decision)
+        prediction = model.predict(input_array)[0]
+        visa_decision = "Accepted" if prediction == 0 else "Rejected"
+        
+        # Return both the visa decision and explanation
+        return {
+            "visa_decision": visa_decision,
+            "explanation": exp_list
+        }
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Error occurred in explain_decision: {e}")
+        # Return a more user-friendly error message
+        return {"error": "An error occurred while explaining the decision. Please try again."}
 
 @app.get("/audit")
 def audit_bias():
